@@ -1,68 +1,41 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
-func commandMap(c *config) error {
-	url := "https://pokeapi.co/api/v2/location-area?limit=20&offset=0"
-
-	fmt.Println(url)
-
-	if c.Next != "" {
-		url = c.Next
-	}
-
-	resp, err := http.Get(url)
+func commandMapf(cfg *config) error {
+	locationResp, err := cfg.pokeapiClient.ListLocations(cfg.nextLocationsURL)
 	if err != nil {
-		return fmt.Errorf("Error occured trying to fetch location-are: %v", err)
+		return err
 	}
 
-	defer resp.Body.Close()
+	cfg.nextLocationsURL = locationResp.Next
+	cfg.prevLocationsURL = locationResp.Previous
 
-	var locationarea locationArea
-	if err := json.NewDecoder(resp.Body).Decode(&locationarea); err != nil {
-		return fmt.Errorf("error while decoding to locationarea: %v", err)
+	for _, loc := range locationResp.Results {
+		fmt.Println(loc.Name)
 	}
-
-	c.Next = locationarea.Next
-	c.Previous = locationarea.Previous
-
-	for _, v := range locationarea.Results {
-		fmt.Println(v.Name)
-	}
-
 	return nil
 }
 
-func commandMapPrevious(c *config) error {
-	url := "https://pokeapi.co/api/v2/location-area?limit=20&offset=0"
+func commandMapb(cfg *config) error {
 
-	fmt.Println(url)
-
-	if c.Previous != "" {
-		url = c.Previous
+	if cfg.prevLocationsURL == nil {
+		fmt.Println("you're on the first page")
+		return nil
 	}
 
-	resp, err := http.Get(url)
+	locationResp, err := cfg.pokeapiClient.ListLocations(cfg.prevLocationsURL)
 	if err != nil {
-		return fmt.Errorf("Error occured trying to fetch location-are: %v", err)
+		return err
 	}
 
-	defer resp.Body.Close()
+	cfg.nextLocationsURL = locationResp.Next
+	cfg.prevLocationsURL = locationResp.Previous
 
-	var locationarea locationArea
-	if err := json.NewDecoder(resp.Body).Decode(&locationarea); err != nil {
-		return fmt.Errorf("error while decoding to locationarea: %v", err)
-	}
-
-	c.Next = locationarea.Next
-	c.Previous = locationarea.Previous
-
-	for _, v := range locationarea.Results {
-		fmt.Println(v.Name)
+	for _, loc := range locationResp.Results {
+		fmt.Println(loc.Name)
 	}
 
 	return nil
